@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code, unused_imports, unused_variables)]
 
 
 use dialoguer::{theme::ColorfulTheme, Input};
@@ -28,8 +28,63 @@ struct Weather {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    // Result type for error handling
-    // Since trait have unknown size, we need to wrap it in a Box
+    let api_key = env::var("API_KEY")
+        .expect("Please set the API_KEY environment variable");
+
+    let client = reqwest::Client::new();
+    loop {
+        // Prompt user for city name using dialoguer
+        let city: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter city name (or 'exit' to quit)")
+            .validate_with(|input: &String| -> Result<(), &str> {
+                if input.trim().is_empty() {
+                    Err("City name cannot be empty")
+                } else {
+                    Ok(())
+                }
+            })
+            .interact_text()?;
+
+        // Exit condition
+        if city.to_lowercase() == "exit" {
+            println!("Goodbye!");
+            break;
+        }
+
+        // Build the API URL
+        let url = format!(
+            "http://api.openweathermap.org/data/2.5/weather?q={}&appid={}",
+            city, api_key
+        );
+
+        // Make the API request
+        let res = client.get(&url).send().await?;
+
+        // Check if the request was successful
+        if res.status().is_success() {
+            let weather_data: WeatherResponse = res.json().await?;
+
+            // Convert temperature from Kelvin to Celsius
+            let temp_celsius = weather_data.main.temp - 273.15;
+
+            // Display the weather information
+            println!("\nWeather in {}:", weather_data.name);
+            println!("Temperature: {:.1}°C", temp_celsius);
+            println!("Humidity: {}%", weather_data.main.humidity);
+            println!(
+                "Condition: {}",
+                weather_data.weather[0].description
+            );
+        } else {
+            println!("Error: Could not fetch weather data for {}.", city);
+            println!("Status: {}", res.status());
+        }
+
+        println!("\n");
+    }
+
+
+
     
 Ok(())
 }

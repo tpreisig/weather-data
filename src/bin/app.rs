@@ -2,6 +2,7 @@
 
 
 use dialoguer::{theme::ColorfulTheme, Input};
+use dotenv::dotenv;
 use reqwest;
 use serde::Deserialize;
 use std::env;
@@ -28,10 +29,12 @@ struct Weather {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    let api_key = env::var("API_KEY")
-        .expect("Please set the API_KEY environment variable");
+    dotenv().expect("Failed to load .env file");
+    let api_key = env::var("OPENWEATHERMAP_API_KEY")
+        .expect("➡️ API_KEY must be set in .env file");
 
     let client = reqwest::Client::new();
+
     loop {
         // Prompt user for city name using dialoguer
         let city: String = Input::with_theme(&ColorfulTheme::default())
@@ -83,8 +86,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         println!("\n");
     }
 
-
-
-    
 Ok(())
 }
